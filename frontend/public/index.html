@@ -1,0 +1,68 @@
+<!DOCTYPE html>
+<html>
+
+<head>
+  <meta charset="utf-8">
+  <meta http-equiv="X-UA-Compatible" content="IE=edge">
+  <meta name="viewport" content="width=device-width,initial-scale=1.0">
+  <link rel="icon" href="<%= BASE_URL %>favicon.png">
+  <link rel="stylesheet" href="//at.alicdn.com/t/font_871569_yidd76tmrv.css">
+  <title>管理系统</title>
+  <style media="screen" type="text/css">
+  #appLoading {
+    width: 100%;
+    height: 100%;
+    transition: all .5s;
+    position: fixed;
+    top: 0;
+    left: 0;
+    background: #fff;
+    z-index: 999;
+  }
+
+  #app {
+    display: none;
+  }
+
+  #appLoading_box {
+    text-align: center;
+    position: absolute;
+    display: block;
+    font-size: 50px;
+    line-height: 50px;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+  }
+
+  #appLoading_box>div {
+    margin-top: 200px;
+    width: 100px;
+    height: 100px;
+    background: url(loading.svg) no-repeat center top / auto 100%;
+    margin: 80px auto 0 auto;
+  }
+  #appLoading_box>p{
+    font-size: 16px;
+    color:#4198ff;
+    font-weight: 900;
+  }
+  </style>
+</head>
+
+<body>
+  <noscript>
+    <strong>您没有开启 JavaScript ，此网页无法正常运行，请开启后刷新重试</strong>
+  </noscript>
+  <div id="appLoading">
+    <span id="appLoading_box">
+      <!-- <img src="logo.jpg"> -->
+      <div></div>
+      <p>正在加载，请稍后...</p>
+    </span>
+  </div>
+  <div id="app"></div>
+  <!-- built files will be auto injected -->
+</body>
+
+</html>

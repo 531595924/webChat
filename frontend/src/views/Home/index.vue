@@ -1,0 +1,202 @@
+/*
+ * @Author: coldlike 531595924@qq.com 
+ * @Date: 2019-04-09 10:52:44 
+ * @Last Modified by: coldlike 531595924@qq.com
+ * @Last Modified time: 2020-07-17 12:00:46
+ */
+<template>
+  <div class="home">
+    <el-container>
+      <el-aside width="auto">
+        <navi 
+          :menu-switch="menuClass" 
+          :is-collapse="isCollapse"
+          @reset="menuClass = '1'"
+        />
+      </el-aside>
+      <el-container>
+        <el-header style="height: 50px; padding: 0;z-index: 99;">
+          <div class="top_left">
+            <div 
+              :class="isCollapse ? 'menu_open' : 'menu_close' " 
+              class="menu_tab" 
+              @click="isCollapse = !isCollapse"
+            >
+              <i class="iconfont icon-deit-a" />
+            </div>
+          </div>
+          <rightTop />
+        </el-header>
+        <el-main>
+          <!-- 面包屑 -->
+          <breadcrumb v-if="$route.name != '首页'" />
+          <transition 
+            name="el-fade-in-linear" 
+            mode="out-in"
+          >
+            <router-view class="main_box" />
+          </transition>
+        </el-main>
+      </el-container>
+    </el-container>
+  </div>
+</template>
+<script>
+// @ is an alias to /src
+import navi from "../../components/navi";
+import breadcrumb from "../../components/breadcrumb";
+import rightTop from "../../components/rightTop";
+import ws from "../../plugins/ws";
+
+export default {
+  name: "Home",
+  components: {
+    navi,
+    breadcrumb,
+    rightTop
+  },
+  data() {
+    return {
+      isCollapse: false,
+      menuClass: ""
+    };
+  },
+  watch: {
+    $route() {
+      this.saveRoute();
+    }
+  },
+  mounted() {
+    var _this = this;
+    _this.windowSize();
+    window.onresize = function() {
+      _this.windowSize();
+    };
+    var Administrators = sessionStorage.Administrators;
+    if (Administrators && Administrators != "") {
+      this.$store.commit("Administrators", JSON.parse(Administrators));
+    }
+    if (sessionStorage.menuClass) {
+      this.menuClass = sessionStorage.menuClass;
+    } else {
+      this.menuClass = "1";
+    }
+    this.linkWS();
+  },
+  methods: {
+    windowSize() {
+      if (document.body.clientWidth < 1300) {
+        this.isCollapse = true;
+      }
+    },
+    // 保存当前路由地址
+    saveRoute() {
+      var name = this.$route.name;
+      sessionStorage.routeUrl = name;
+      sessionStorage.menuClass = this.menuClass;
+    },
+    linkWS(){
+      ws.onopen = (() => {
+        this.$message.success("消息服务器连接成功");
+      });
+
+      ws.onclose = (() => {
+        this.$message({
+          type: "error",
+          duration: 2000,
+          showClose: false,
+          message: "消息服务器连接断开，2秒后自动重连"
+        })
+        
+        setTimeout(() => {
+        }, 2000);
+      });
+
+      ws.onmessage = (msg => {
+        msg = JSON.parse(msg.data)
+        if(msg.error !== 1008){
+          console.log(msg)
+        } else {
+          this.$message.error("登陆过期，请重新登陆")
+        }
+      });
+    }
+  }
+};
+</script>
+<style scoped>
+.home {
+  height: 100%;
+}
+
+.user_box {
+  float: right;
+  height: inherit;
+}
+
+.el-header {
+  display: flex;
+  box-shadow: 0 3px 5px rgba(0, 0, 0, 0.1);
+  justify-content: space-between;
+}
+
+.menu_tab {
+  width: 50px;
+  transition: 0.3s all;
+  cursor: pointer;
+}
+
+.menu_tab:hover >>> i {
+  color: #4198ff;
+}
+
+.menu_tab > .iconfont {
+  font-size: 16px;
+  color: #666;
+  width: 100%;
+  text-align: center;
+  margin: 0 auto;
+  line-height: 50px;
+  transition: 0.3s all;
+}
+
+.top_left {
+  display: flex;
+  align-items: center;
+}
+
+.el-container {
+  height: 100%;
+}
+
+.el-aside {
+  max-width: 200px;
+  height: 100%;
+  overflow: hidden;
+}
+
+.menu_open {
+  transform: rotate(180deg);
+}
+
+#breadcrumb {
+  margin-bottom: 20px;
+}
+
+.el-main {
+  flex-direction: column;
+  display: flex;
+}
+
+.el-header {
+  align-items: center;
+}
+
+.main_box {
+  flex: 1;
+  overflow-y: auto;
+  display: flex;
+  flex-direction: column;
+  position: relative;
+}
+</style>

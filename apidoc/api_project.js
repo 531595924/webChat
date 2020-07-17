@@ -1,0 +1,23 @@
+define({
+  "name": "登陆接口demo",
+  "description": "登陆接口demo-简介",
+  "title": "登陆接口demo",
+  "url": "http://127.0.0.1:5000",
+  "sampleUrl": "http://127.0.0.1:5000",
+  "order": [
+    "User",
+    "Miscellaneous"
+  ],
+  "template": {
+    "aloneDisplay": false
+  },
+  "version": "0.2.0",
+  "defaultVersion": "0.0.0",
+  "apidoc": "0.3.0",
+  "generator": {
+    "name": "apidoc",
+    "time": "2020-07-17T03:39:15.742Z",
+    "url": "http://apidocjs.com",
+    "version": "0.23.0"
+  }
+});

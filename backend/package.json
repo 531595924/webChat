@@ -1,0 +1,40 @@
+{
+  "name": "logindemo",
+  "version": "0.2.0",
+  "description": "",
+  "main": "index.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "repository": {
+    "type": "git"
+  },
+  "keywords": [
+    "demo"
+  ],
+  "author": "like 531595924@qq.com",
+  "license": "ISC",
+  "dependencies": {
+    "@hapi/joi": "^17.1.1",
+    "compression": "^1.7.4",
+    "express": "^4.17.1",
+    "express-formidable": "^1.2.0",
+    "jsonwebtoken": "^8.5.1",
+    "mongoose": "^5.9.20",
+    "ws": "^7.3.1"
+  },
+  "apidoc": {
+    "name": "登陆接口demo",
+    "description": "登陆接口demo-简介",
+    "title": "登陆接口demo",
+    "url": "http://127.0.0.1:5000",
+    "sampleUrl": "http://127.0.0.1:5000",
+    "order": [
+      "User",
+      "Miscellaneous"
+    ],
+    "template": {
+      "aloneDisplay": false
+    }
+  }
+}
