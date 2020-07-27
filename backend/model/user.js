@@ -2,7 +2,7 @@
  * @Author: coldlike 531595924@qq.com 
  * @Date: 2020-06-30 17:39:33 
  * @Last Modified by: coldlike 531595924@qq.com
- * @Last Modified time: 2020-07-17 11:34:37
+ * @Last Modified time: 2020-07-27 17:29:51
  */
 const express = require(`express`)
 const router = express.Router()
@@ -349,7 +349,6 @@ router.post('/setUserInfo', auth, async (req, res) => {
     })
 })
 
-
 /**
  * @api {get} /user/searchUsers 搜索用户
  * @apiName searchUsers
@@ -490,7 +489,7 @@ router.post('/addFriends', auth, async (req, res) => {
       })
       return false
     }
-    await ws.wsSend( reqData.userid , {
+    await ws.wsSend(reqData.userid, {
       type: "addFriend",
       message: `${req.user.nickname}请求添加你为好友`,
       data: {
@@ -510,6 +509,91 @@ router.post('/addFriends', auth, async (req, res) => {
       sysErr: error
     })
   }
+})
+
+
+/**
+ * @api {get} /user/getNews 获取news消息
+ * @apiName getNews
+ * @apiGroup User
+ * 
+ * @apiHeader {string} Authorization 登陆后返回的token
+ * @apiPermission 普通用户
+ * 
+ * @apiParam {string} [type] 0全部消息 1未读消息（默认） 2已读消息
+ * 
+ * @apiSuccessExample  {json} 成功返回
+ * {
+ *    error: 0,
+ *    data: {
+ *        "_id": "", // 消息id
+ *        "type": "addFriend", // 消息类型
+ *        "message": "123456789请求添加你为好友", // 消息文档
+ *        "data": { // 消息数据
+ *            "sendUserId": "5f0eca020717ae2540af29e8",
+ *            "receiverId": "5f0fced6394edf0c2c520cf3"
+ *        },
+ *        "sendTime": "2020-07-17T03:31:00.805Z", // 发送时间
+ *        "readTime": null, // 读取时间
+ *        "readStatus": false // 是否已读
+ *    }
+ * }
+ * 
+ * @apiErrorExample  {json} 错误返回
+ * {
+ *    error: 1,
+ *    message: "查询news信息错误"
+ * }
+ */
+router.get('/getNews', auth, async (req, res) => {
+  let reqData = req.query;
+  // joi 验证前端传入数据
+  let schema = Joi.object({
+    type: Joi.string().valid('0', '1', '2')
+  });
+
+  await schema.validateAsync(reqData).catch(err => {
+    res.send({
+      error: 1,
+      message: '用户信息格式错误，请重试',
+      sysErr: err.details[0].message
+    })
+    return Promise.reject()
+  });
+
+  let type = reqData.type ? reqData.type : '1';
+
+  let filter = [
+    { $match: { _id: req.user._id } },
+    { $project: { _id: 0, news: 1 } },
+  ]
+
+  if (type == 1) {
+    filter.push({ $match: { 'news.readStatus': false } })
+  } else if (type == 2) {
+    filter.push({ $match: { 'news.readStatus': true } })
+  }
+
+  userDb.aggregate(filter).then(dbRes => {
+    if (dbRes.length != 0) {
+      res.send({
+        error: 0,
+        data: dbRes[0].news
+      })
+    } else {
+      res.send({
+        error: 1,
+        message: "未搜索到消息"
+      })
+    }
+  })
+    .catch(err => {
+      console.log(err)
+      res.send({
+        error: 1,
+        message: "消息搜索失败，请重试"
+      })
+    })
 })
 
 module.exports = router

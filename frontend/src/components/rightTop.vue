@@ -23,19 +23,34 @@
         </el-button>
       </div>
     </el-tooltip>
-    <el-tooltip
-      class="item"
-      effect="dark"
-      content="消息通知（暂无链接）"
+    <el-popover
       placement="bottom"
+      width="400"
+      trigger="hover"
     >
       <div
+        slot="reference"
         class="news"
-        @click="news"
       >
-        <i class="iconfont icon-xiaoxi" />
+        <i class="iconfont icon-xiaoxi">
+          <el-badge
+            :value="news.length"
+            :max="9"
+            class="news-badge"
+          />
+        </i>
       </div>
-    </el-tooltip>
+      <div class="news-box">
+        <div
+          v-for="i in news"
+          :key="i._id"
+          class="news-item"
+        >
+          <p>{{ i.type }}</p>
+          <p>{{ i.message }}</p>
+        </div>
+      </div>
+    </el-popover>
     <el-tooltip
       class="item"
       effect="dark"
@@ -55,9 +70,14 @@
 export default {
   name: "RightTop",
   data() {
-    return {};
+    return {
+      news: [],
+    };
   },
   watch: {},
+  mounted() {
+    this.getNews();
+  },
   methods: {
     signOut() {
       this.$msgbox({
@@ -77,18 +97,33 @@ export default {
           } else {
             done();
           }
-        }
+        },
       });
     },
-    news() {
-      axios.get('miscellaneous/news')
-        .then(res => console.log(res))
-        .catch(err => console.log(err))
+    getNews() {
+      axios
+        .get("user/getNews")
+        .then((res) => {
+          if (res.error == 0) {
+            this.news = this.news.concat(res.data);
+            this.$notify.warning({
+              title: `您有${res.data.length}条未读消息`,
+              offset: 50,
+            });
+          } else {
+            var message = res.message ? res.message : "网络错误，请重试";
+            this.$message({
+              message: message,
+              type: "error",
+            });
+          }
+        })
+        .catch((err) => console.log(err));
     },
     userInfo() {
       this.$router.push("/User");
-    }
-  }
+    },
+  },
 };
 </script>
 <style scoped>
@@ -126,7 +161,7 @@ export default {
 .news,
 .signOut {
   line-height: 50px;
-  width: 40px;
+  width: 50px;
   display: flex;
   text-align: center;
   align-items: center;
@@ -161,6 +196,13 @@ export default {
 
 .Administrators_text > span {
   font-weight: 500;
+}
+
+.news-badge {
+  margin-top: 5px;
+}
+.icon-xiaoxi {
+  width: 50px;
 }
 </style>
 <style>
