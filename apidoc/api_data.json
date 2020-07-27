@@ -55,7 +55,7 @@
         }
       ]
     },
-    "filename": "./model/miscellaneous.js",
+    "filename": "backend/model/miscellaneous.js",
     "groupTitle": "Miscellaneous",
     "sampleRequest": [
       {
@@ -119,7 +119,7 @@
       ]
     },
     "version": "0.0.0",
-    "filename": "./model/user.js",
+    "filename": "backend/model/user.js",
     "groupTitle": "User",
     "sampleRequest": [
       {
@@ -161,7 +161,7 @@
       ]
     },
     "version": "0.0.0",
-    "filename": "./model/user.js",
+    "filename": "backend/model/user.js",
     "groupTitle": "User",
     "sampleRequest": [
       {
@@ -214,7 +214,7 @@
       ]
     },
     "version": "0.0.0",
-    "filename": "./model/user.js",
+    "filename": "backend/model/user.js",
     "groupTitle": "User",
     "sampleRequest": [
       {
@@ -275,7 +275,7 @@
         }
       ]
     },
-    "filename": "./model/user.js",
+    "filename": "backend/model/user.js",
     "groupTitle": "User",
     "sampleRequest": [
       {
@@ -339,7 +339,7 @@
       ]
     },
     "version": "0.0.0",
-    "filename": "./model/user.js",
+    "filename": "backend/model/user.js",
     "groupTitle": "User",
     "sampleRequest": [
       {
@@ -410,7 +410,7 @@
       ]
     },
     "version": "0.0.0",
-    "filename": "./model/user.js",
+    "filename": "backend/model/user.js",
     "groupTitle": "User",
     "sampleRequest": [
       {
@@ -474,7 +474,7 @@
       ]
     },
     "version": "0.0.0",
-    "filename": "./model/user.js",
+    "filename": "backend/model/user.js",
     "groupTitle": "User",
     "sampleRequest": [
       {
