@@ -2,7 +2,7 @@
  * @Author: coldlike 531595924@qq.com 
  * @Date: 2020-06-30 17:39:33 
  * @Last Modified by: coldlike 531595924@qq.com
- * @Last Modified time: 2020-07-27 17:29:51
+ * @Last Modified time: 2020-08-10 15:09:50
  */
 const express = require(`express`)
 const router = express.Router()
@@ -454,7 +454,8 @@ router.post('/addFriends', auth, async (req, res) => {
   let reqData = req.fields;
   // joi 验证前端传入数据
   let schema = Joi.object({
-    userid: Joi.string().min(24).max(24).required()
+    userid: Joi.string().min(24).max(24).required(),
+    text: Joi.string().max(16)
   });
 
   await schema.validateAsync(reqData).catch(err => {
@@ -481,7 +482,7 @@ router.post('/addFriends', auth, async (req, res) => {
       })
       return false
     }
-    let repeat = req.user.friends.every(i => i._id != reqData.userid)
+    let repeat = req.user.friends.every(i => i.friendId != reqData.userid)
     if (!repeat) {
       res.send({
         error: 1,
@@ -489,12 +490,13 @@ router.post('/addFriends', auth, async (req, res) => {
       })
       return false
     }
-    await ws.wsSend(reqData.userid, {
-      type: "addFriend",
+    await ws.sendNews(reqData.userid, {
+      type: "news",
+      secondType: "addFriend",
       message: `${req.user.nickname}请求添加你为好友`,
       data: {
-        sendUserId: req.user._id,
-        receiverId: reqData.userid,
+        text: reqData.text,
+        sendUserId: req.user._id
       }
     })
     res.send({
@@ -561,11 +563,12 @@ router.get('/getNews', auth, async (req, res) => {
     return Promise.reject()
   });
 
-  let type = reqData.type ? reqData.type : '1';
+  let type = reqData.type ? reqData.type : '0';
 
   let filter = [
     { $match: { _id: req.user._id } },
     { $project: { _id: 0, news: 1 } },
+    { $unwind: "$news" },
   ]
 
   if (type == 1) {
@@ -576,14 +579,18 @@ router.get('/getNews', auth, async (req, res) => {
 
   userDb.aggregate(filter).then(dbRes => {
     if (dbRes.length != 0) {
+      let resData = []
+      dbRes.forEach(i => {
+        resData.push(i.news)
+      })
       res.send({
         error: 0,
-        data: dbRes[0].news
+        data: resData
       })
     } else {
       res.send({
         error: 1,
-        message: "未搜索到消息"
+        message: "无未读消息"
       })
     }
   })
@@ -594,6 +601,358 @@ router.get('/getNews', auth, async (req, res) => {
         message: "消息搜索失败，请重试"
       })
     })
+})
+
+/**
+ * @api {post} /user/readNews 已读消息
+ * @apiName readNews
+ * @apiGroup User
+ * 
+ * @apiHeader {string} Authorization 登陆后返回的token
+ * @apiPermission 普通用户
+ * 
+ * @apiParam {string} newsId 消息 ID
+ * 
+ * @apiSuccessExample  {json} 成功返回
+ * {
+ *    error: 0
+ * }
+ * 
+ * @apiErrorExample  {json} 错误返回
+ * {
+ *    error: 1,
+ *    message: "已读消息错误"
+ * }
+ */
+router.post('/readNews', auth, async (req, res) => {
+  let reqData = req.fields;
+  // joi 验证前端传入数据
+  let schema = Joi.object({
+    newsId: Joi.string().min(24).max(24).required()
+  });
+
+  await schema.validateAsync(reqData).catch(err => {
+    res.send({
+      error: 1,
+      message: '提交格式错误，请重试',
+      sysErr: err.details[0].message
+    })
+    return Promise.reject()
+  });
+
+  userDb.updateOne(
+    { _id: req.user._id, "news._id": reqData.newsId },
+    { $set: { "news.$.readStatus": true } }
+  )
+    .then(dbRes => {
+      res.send({ error: 0 })
+    })
+    .catch(dbErr => {
+      console.log(dbErr)
+      res.send({
+        error: 1,
+        message: "已读消息错误"
+      })
+    })
+})
+
+/**
+ * @api {post} /user/passAddFriend 通过添加好友请求
+ * @apiName passAddFriend
+ * @apiGroup User
+ * 
+ * @apiHeader {string} Authorization 登陆后返回的token
+ * @apiPermission 普通用户
+ * 
+ * @apiParam {string} friendId 好友id
+ * @apiParam {number} pass 是否通过 0不通过 1通过
+ * 
+ * @apiSuccessExample  {json} 成功返回
+ * {
+ *    error: 0
+ * }
+ * 
+ * @apiErrorExample  {json} 错误返回
+ * {
+ *    error: 1,
+ *    message: "已添加此好友"
+ * }
+ */
+router.post('/passAddFriend', auth, async (req, res) => {
+  let reqData = req.fields;
+  // joi 验证前端传入数据
+  let schema = Joi.object({
+    friendId: Joi.string().min(24).max(24).required(),
+    pass: Joi.number().valid(0, 1).required()
+  });
+
+  await schema.validateAsync(reqData).catch(err => {
+    res.send({
+      error: 1,
+      message: '提交格式错误，请重试',
+      sysErr: err.details[0].message
+    })
+    return Promise.reject()
+  });
+
+  let hasFriend = await userDb.findOne({ _id: req.user._id, "friends.friendId": reqData.friendId });
+  console.log(hasFriend)
+  if (!hasFriend) {
+    if (reqData.pass == 1) {
+      await userDb.findByIdAndUpdate(req.user._id, {
+        $push: { friends: { friendId: reqData.friendId } }
+      });
+      let newFriend = await userDb.findByIdAndUpdate(reqData.friendId, {
+        $push: { friends: { friendId: req.user._id } }
+      }, { new: true });
+
+      ws.sendNews(req.user._id, {
+        type: "news",
+        secondType: "passFriend",
+        message: `已添加${newFriend.nickname}为好友`
+      })
+
+      ws.sendNews(reqData.friendId, {
+        type: "news",
+        secondType: "passFriend",
+        message: `请求通过，已添加${req.user.nickname}为好友`
+      })
+      res.send({
+        error: 0
+      })
+    } else if (reqData.pass == 0) {
+      ws.sendNews(reqData.friendId, {
+        type: "news",
+        secondType: "passFriend",
+        message: `${req.user.nickname}拒绝添加好友请求`
+      })
+    }
+  } else {
+    res.send({
+      error: 1,
+      message: "已添加此好友"
+    })
+  }
+
+})
+
+/**
+ * @api {get} /user/getFriendsList 获取好友列表
+ * @apiName getFriendsList
+ * @apiGroup User
+ * 
+ * @apiHeader {string} Authorization 登陆后返回的token
+ * @apiPermission 普通用户
+ *  
+ * @apiSuccessExample  {json} 成功返回
+ * {
+ *    error: 0
+ * }
+ * 
+ * @apiErrorExample  {json} 错误返回
+ * {
+ *    error: 1,
+ *    message: "获取错误"
+ * }
+ */
+router.get('/getFriendsList', auth, async (req, res) => {
+  try {
+    let dbRes = await userDb.aggregate([
+      { $match: { _id: req.user._id } },
+      {
+        $lookup: {
+          from: 'users',
+          localField: 'friends.friendId',
+          foreignField: '_id',
+          as: 'friendsList'
+        }
+      },
+      {
+        $project: {
+          'friends.friendId': 1,
+          'friends.unreadNum': 1,
+          'friendsList._id': 1,
+          'friendsList.sex': 1,
+          'friendsList.status': 1,
+          'friendsList.online': 1,
+          'friendsList.username': 1,
+          'friendsList.nickname': 1,
+          'friendsList.userPortrait': 1
+        }
+      }
+    ]);
+  
+    let friendsInfo = dbRes[0].friends;
+    let friendslist = dbRes[0].friendsList;
+    friendslist.forEach(i => {
+      friendsInfo.forEach(o => {
+        if(String(i._id) === String(o.friendId)){
+          i.unreadNum = o.unreadNum;
+        }
+      })
+    })
+    res.send({
+      error: 0,
+      data: dbRes[0].friendsList
+    })
+  } catch (error) {
+    res.send({
+      error: 1,
+      message: "获取错误"
+    });
+    console.log(error)
+  }
+})
+
+/**
+ * @api {post} /user/sendMessage 发送消息（好友）
+ * @apiName sendMessage
+ * @apiGroup User
+ * 
+ * @apiHeader {string} Authorization 登陆后返回的token
+ * @apiPermission 普通用户
+ * 
+ * @apiParam {string} toId 接收者ID
+ * @apiParam {string} text 消息（最多1000字符）
+ * @apiParam {date} time 发送时间 js 时间戳
+ * 
+ * @apiSuccessExample  {json} 成功返回
+ * {
+ *    error: 0
+ * }
+ * 
+ * @apiErrorExample  {json} 错误返回
+ * {
+ *    error: 1,
+ *    message: "获取错误"
+ * }
+ */
+router.post('/sendMessage', auth, async (req, res) => {
+  let reqData = req.fields;
+  // joi 验证前端传入数据
+  let schema = Joi.object({
+    toId: Joi.string().min(24).max(24).required(),
+    text: Joi.string().min(1).max(1000).required(),
+    time: Joi.date().timestamp().required()
+  });
+
+  await schema.validateAsync(reqData).catch(err => {
+    res.send({
+      error: 1,
+      message: '提交格式错误，请重试',
+      sysErr: err.details[0].message
+    })
+    return Promise.reject()
+  });
+
+  let Time = new Date(Number(reqData.time))
+  let record = {
+    sendId: req.user._id,
+    text: reqData.text,
+    time: Time
+  }
+  await userDb.updateOne({
+    _id: req.user._id,
+    "friends.friendId": reqData.toId
+  },
+    {
+      $push: {
+        "friends.$.chatRecord": record
+      }
+    }
+  );
+
+  await userDb.updateOne({
+    _id: reqData.toId,
+    "friends.friendId": req.user._id
+  },
+    {
+      $push: {
+        "friends.$.chatRecord": record
+      },
+      "$inc": { "friends.$.unreadNum": 1 }
+    }
+  );
+
+  let message = {
+    type: "sendMessage",
+    data: record
+  }
+
+  ws.clients.forEach(client => {
+    if (reqData.toId == client.user._id) {
+      client.send(JSON.stringify(message));
+    }
+  })
+
+  res.send({ error: 0 })
+})
+
+
+/**
+ * @api {get} /user/getUserChatRecord 获取与好友的聊天记录
+ * @apiName getUserChatRecord
+ * @apiGroup User
+ * 
+ * @apiHeader {string} Authorization 登陆后返回的token
+ * @apiPermission 普通用户
+ * 
+ * @apiParam {string} friendId 好友id
+ * @apiParam {number} [limit] 条数 默认 20
+ * @apiParam {number} [skip] 跳过条数 默认 0
+ * 
+ * @apiSuccessExample  {json} 成功返回
+ * {
+ *    error: 0
+ *    data: [{
+ *         sendId: "", // 发送者id
+ *         text: "", // 信息
+ *         time: "" // 发送时间
+ *      }],
+ *    limit: 20,
+ *    skip: 0
+ * }
+ * 
+ * @apiErrorExample  {json} 错误返回
+ * {
+ *    error: 1,
+ *    message: "获取错误"
+ * }
+ */
+router.get('/getUserChatRecord', auth, async (req, res) => {
+  let reqData = req.query;
+  // joi 验证前端传入数据
+  let schema = Joi.object({
+    friendId: Joi.string().min(24).max(24).required(),
+    limit: Joi.number().min(0),
+    skip: Joi.number().min(0)
+  });
+
+  await schema.validateAsync(reqData).catch(err => {
+    res.send({
+      error: 1,
+      message: '提交格式错误，请重试',
+      sysErr: err.details[0].message
+    })
+    return Promise.reject()
+  });
+
+  let limit = reqData.limit ? Number(reqData.limit) : 20;
+  let skip = reqData.skip ? Number(reqData.skip) : 0;
+
+  let dbRes = await userDb.findById(req.user._id, { "friends": { $elemMatch: { "friendId": reqData.friendId } } });
+  let chatRecord = dbRes.friends[0].chatRecord;
+  let start = chatRecord.length - limit - skip;
+  start = start >= 0 ? start : 0;
+  let end = chatRecord.length - skip;
+  end = end >= 0 ? end : 0;
+  let doc = chatRecord.slice(start, end);
+  res.send({
+    error: 0,
+    data: doc,
+    limit: limit,
+    skip: skip
+  })
 })
 
 module.exports = router

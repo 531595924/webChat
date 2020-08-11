@@ -2,22 +2,46 @@
  * @Author: coldlike 531595924@qq.com 
  * @Date: 2020-07-02 11:33:59 
  * @Last Modified by: coldlike 531595924@qq.com
- * @Last Modified time: 2020-07-17 11:07:08
+ * @Last Modified time: 2020-08-10 14:34:13
  */
 const mongoose = require('./db');
 
 const newsChild = new mongoose.Schema({
-  id: {
+  _id: {
     type: mongoose.Types.ObjectId,
     unique: true,
     required: true
   },
   type: String,
+  secondType: String,
   message: String,
   data: Object,
   sendTime: Date,
   readTime: Date,
   readStatus: Boolean
+});
+
+const chatRecordChild = new mongoose.Schema({
+  sendId: mongoose.Types.ObjectId,
+  text: String,
+  time: Date
+});
+
+const friendsChild = new mongoose.Schema({
+  friendId: {
+    type: mongoose.Types.ObjectId,
+    unique: true,
+    required: true
+  },
+  addTime: {
+    type: Date,
+    default: Date.now
+  },
+  unreadNum: {
+    type: Number,
+    default: 0
+  },
+  chatRecord: [chatRecordChild]
 })
 
 const Schema = new mongoose.Schema({
@@ -62,6 +86,11 @@ const Schema = new mongoose.Schema({
     type: Number,
     default: 1
   },
+  // 在线状态
+  online: {
+    type: Number,
+    default: 0
+  },
   // 注册时间
   signupdate: {
     type: Date,
@@ -76,9 +105,7 @@ const Schema = new mongoose.Schema({
     type: String
   },
   // 用户好友列表
-  friends: {
-    type: Array
-  },
+  friends: [friendsChild],
   // 消息
   news: [newsChild],
   // 默认菜单项
@@ -91,11 +118,6 @@ const Schema = new mongoose.Schema({
         "app_id": 0
       },
       {
-        "app_name": "账户设置",
-        "app_title": "User",
-        "app_id": 1
-      },
-      {
         "app_name": "我的好友",
         "app_title": "Friends",
         "app_id": 2
@@ -104,6 +126,11 @@ const Schema = new mongoose.Schema({
         "app_name": "我的群",
         "app_title": "ChatGroup",
         "app_id": 3
+      },
+      {
+        "app_name": "账户设置",
+        "app_title": "User",
+        "app_id": 1
       }
     ]
   }

@@ -2,7 +2,7 @@
  * @Author: coldlike 531595924@qq.com 
  * @Date: 2020-06-29 15:38:04 
  * @Last Modified by: coldlike 531595924@qq.com
- * @Last Modified time: 2020-07-14 08:52:22
+ * @Last Modified time: 2020-08-10 14:46:21
  */
 import Vue from 'vue'
 import VueRouter from 'vue-router'
@@ -39,7 +39,7 @@ const router = new VueRouter({
         path: "Friends",
         name: "我的好友",
         meta: {
-          mustLogin: false
+          mustLogin: true
         },
         component: () => import("../views/Home/Friends")
       },

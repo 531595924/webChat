@@ -2,7 +2,7 @@
  * @Author: coldlike 531595924@qq.com 
  * @Date: 2020-07-14 09:12:02 
  * @Last Modified by: coldlike 531595924@qq.com
- * @Last Modified time: 2020-07-17 11:30:46
+ * @Last Modified time: 2020-08-10 14:19:35
  */
 
 <!-- 模块 -->
@@ -11,6 +11,7 @@
   <div class="friends">
     <div class="friends-left">
       <displayList
+        :list-data="friendsList"
         :activity-id="activityId"
         @clickitem="clickitem"
       />
@@ -23,7 +24,7 @@
     </div>
     <chatWindow
       v-if="activityId && activityId != ''"
-      :activity-id="activityId"
+      :activity-data="activityData"
     />
     <el-dialog
       width="500px"
@@ -77,13 +78,42 @@
         <el-button
           type="primary"
           size="small"
-          :loading="addBtnLoading"
           :disabled="!(searUserSelect && searUserSelect != '')"
-          @click="addFriendAxios"
+          @click="innerDialog.visible = true"
         >
-          添 加
+          确 定
         </el-button>
       </div>
+      <el-dialog
+        width="30%"
+        :visible.sync="innerDialog.visible"
+        append-to-body
+        center
+      >
+        <el-input
+          v-model="innerDialog.input"
+          placeholder="请输入备注消息（可选）"
+        />
+        <div
+          slot="footer"
+          class="dialog-footer"
+        >
+          <el-button
+            size="small"
+            @click="innerDialog.visible = false"
+          >
+            取 消
+          </el-button>
+          <el-button
+            type="primary"
+            size="small"
+            :loading="addBtnLoading"
+            @click="addFriendAxios"
+          >
+            发 送
+          </el-button>
+        </div>
+      </el-dialog>
     </el-dialog>
   </div>
 </template>
@@ -96,7 +126,7 @@ export default {
   name: "Friends", // 模块name
   components: {
     displayList,
-    chatWindow
+    chatWindow,
   },
   data() {
     // 模块数据，必须使用 return
@@ -104,27 +134,60 @@ export default {
       activityId: "",
       addFriends: {
         visible: false,
-        input: ""
+        input: "",
+      },
+      innerDialog: {
+        visible: false,
+        input: "",
       },
       searchLoading: false,
       searchUserList: [],
       searUserSelect: "",
-      addBtnLoading: false
+      addBtnLoading: false,
     };
   },
 
   //计算属性
-  computed: {},
+  computed: {
+    friendsList(){
+      return this.$store.state.friendsList;
+    },
+    activityData() {
+      return this.friendsList.find((i) => i._id == this.activityId);
+    },
+    friendId(){
+      return this.$route
+    }
+  },
 
   //监视属性
-  watch: {},
+  watch: {
+  },
 
   //生命周期开始
   //页面初始化完成后执行
-  // mounted: (){},
-
+  mounted() {
+    if(this.$route.params){
+      this.activityId = this.$route.params.friendId
+    }
+  },
   //方法属性
   methods: {
+    getFriends() {
+      axios
+        .get("user/getFriendsList")
+        .then((res) => {
+          if (res.error == 0) {
+            this.$store.commit("friendsList", res.data);
+          } else {
+            this.$message.error(res.message);
+          }
+        })
+        .catch((err) => {
+          console.log(err);
+          this.$message.error("获取好友错误，请刷新重试");
+        });
+    },
     clickitem(id) {
       this.activityId = id;
     },
@@ -138,10 +201,10 @@ export default {
         axios
           .get("user/searchUsers", {
             params: {
-              text: text
-            }
+              text: text,
+            },
           })
-          .then(res => {
+          .then((res) => {
             this.searchLoading = false;
             if (res.error == 0) {
               this.searchUserList = res.data;
@@ -149,46 +212,48 @@ export default {
               this.$message.warning(res.message);
             }
           })
-          .catch(err => {
+          .catch((err) => {
             this.searchLoading = false;
             this.$message.error("搜索错误，请重试");
             console.log(err);
           });
       }
     },
-    closeDialog(){
-      this.searchUserList =[];
+    closeDialog() {
+      this.searchUserList = [];
       this.searUserSelect = "";
       this.searchLoading = false;
-      this.addFriends.input = ""
+      this.addFriends.input = "";
     },
-    addFriendAxios(){
-      if(this.searUserSelect && this.searUserSelect != ''){
+    addFriendAxios() {
+      if (this.searUserSelect && this.searUserSelect != "") {
         this.addBtnLoading = true;
         let formData = new FormData();
-        formData.append("userid", this.searUserSelect)
+        formData.append("userid", this.searUserSelect);
+        formData.append("text", this.innerDialog.input);
         axios
           .post("user/addFriends", formData)
-          .then(res => {
+          .then((res) => {
             this.addBtnLoading = false;
-            console.log(res)
-            if(res.error == 0){
+            if (res.error == 0) {
               this.$message.success(res.message);
+              this.innerDialog.visible = false;
+              this.getFriends();
             } else {
               this.$message.error(res.message);
             }
           })
-          .catch(err =>{
+          .catch((err) => {
             this.addBtnLoading = false;
-            console.log(err)
+            console.log(err);
             this.$message.error("添加好友失败，请重试");
-          })
+          });
       } else {
-        this.$message.error("系统错误请重试")
-        return false
+        this.$message.error("系统错误请重试");
+        return false;
       }
-    }
-  }
+    },
+  },
 };
 </script>
 <style scoped>
@@ -225,13 +290,13 @@ export default {
   display: flex;
   align-items: center;
   padding: 5px;
-  border-left: 1px solid #DCDFE6;
+  border-left: 1px solid #dcdfe6;
   border-radius: 4px;
-  box-shadow: none!important;
+  box-shadow: none !important;
 }
 
 .searchUserItem.is-active >>> .el-radio-button__inner {
-  border-left: 1px solid #409EFF;
+  border-left: 1px solid #409eff;
 }
 
 .searchUserPortrait {

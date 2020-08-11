@@ -2,7 +2,7 @@
  * @Author: coldlike 531595924@qq.com 
  * @Date: 2020-07-13 16:05:38 
  * @Last Modified by: coldlike 531595924@qq.com
- * @Last Modified time: 2020-07-17 11:19:46
+ * @Last Modified time: 2020-08-07 11:35:45
  */
 const userDb = require('./db/user')
 const { checkToken } = require("./token") // auth token 认证模块
@@ -22,18 +22,34 @@ async function WSauth(token) {
 var ws = new WebSocket.Server({ port: 5757 });
 
 // 监听接入进来的客户端事件
-function websocket_add_listener(ws) {
+async function websocket_add_listener(client) {
+	await friendOnlineState(1);
 
 	// close事件
-	ws.on("close", (err) => {
-		console.log("client close");
+	client.on("close", async (err) => {
+		await friendOnlineState(0);
 	});
 
 	// error事件
-	ws.on("error", err => {
-		console.log("client error", err);
+	client.on("error", async err => {
+		await friendOnlineState(0);
 	});
 	// end 
+	async function friendOnlineState(state) {
+		await userDb.findByIdAndUpdate(client.user._id, { online: state });
+		let friendArr = await userDb.find({ "friends.friendId": client.user._id }).select({ _id: 1 });
+
+		ws.clients.forEach(async item => {
+			let isFriend = friendArr.some(element => JSON.stringify(element._id) == JSON.stringify(item.user._id));
+			if (isFriend) {
+				item.send(JSON.stringify({
+					type: "friendOnlineState",
+					state: state,
+					friendId: client.user._id
+				}))
+			}
+		})
+	}
 }
 
 // connection 事件, 有客户端接入进来;
@@ -62,39 +78,42 @@ ws.on("connection", (ws, req) => {
  * @param {String} type 消息类型 "all" 全部用户 "online" 在线用户 "id,id,id" 用户 id 组（用户id逗号分隔）
  * @param {Object} message 发送的消息
  */
-ws.wsSend = async function (type = "all", message) {
+ws.sendNews = async function (type = "all", message) {
 	message = {
 		type: message.type ? message.type : '',
+		secondType: message.secondType ? message.secondType : '',
 		message: message.message ? message.message : '',
 		data: message.data ? message.data : {},
 		sendTime: new Date(),
 		readTime: "",
 		readStatus: false
 	}
-	if(type === "all"){
-		ws.clients.forEach(async client =>  {
+	if (type === "all") {
+		ws.clients.forEach(client => {
 			client.send(JSON.stringify(message));
 		});
 		let dbRes = await userDb.updateMany({}, { $push: { news: message } });
 		return dbRes.modifiedCount
-	} else if(type === "online"){
+	} else if (type === "online") {
 		let num = 0
-		ws.clients.forEach( async client => {
+		ws.clients.forEach(async client => {
 			client.send(JSON.stringify(message));
-			await userDb.updateOne({_id: client.user._id}, { $push: { news: message } })
-			num ++
+			await userDb.updateOne({ _id: client.user._id }, { $push: { news: message } })
+			num++
 		});
 		return num
 	} else {
-		if(type != ""){
+		if (type != "") {
 			let idArr = type.split(",");
 			ws.clients.forEach(clent => {
-				if(idArr.includes(clent.user._id)){
-					client.send(JSON.stringify(message));
-				}
+				idArr.forEach(itemId => {
+					if (itemId == clent.user._id) {
+						clent.send(JSON.stringify(message));
+					}
+				})
 			})
 			idArr.forEach(async id => {
-				await userDb.updateOne({_id: id}, { $push: { news: message } })
+				await userDb.findByIdAndUpdate(id, { $push: { news: message } }, { new: true })
 			})
 			return idArr.length
 		} else {

@@ -2,14 +2,14 @@
  * @Author: coldlike 531595924@qq.com 
  * @Date: 2019-04-09 10:52:44 
  * @Last Modified by: coldlike 531595924@qq.com
- * @Last Modified time: 2020-07-17 12:00:46
+ * @Last Modified time: 2020-08-10 11:48:08
  */
 <template>
   <div class="home">
     <el-container>
       <el-aside width="auto">
-        <navi 
-          :menu-switch="menuClass" 
+        <navi
+          :menu-switch="menuClass"
           :is-collapse="isCollapse"
           @reset="menuClass = '1'"
         />
@@ -17,9 +17,9 @@
       <el-container>
         <el-header style="height: 50px; padding: 0;z-index: 99;">
           <div class="top_left">
-            <div 
-              :class="isCollapse ? 'menu_open' : 'menu_close' " 
-              class="menu_tab" 
+            <div
+              :class="isCollapse ? 'menu_open' : 'menu_close' "
+              class="menu_tab"
               @click="isCollapse = !isCollapse"
             >
               <i class="iconfont icon-deit-a" />
@@ -30,8 +30,8 @@
         <el-main>
           <!-- 面包屑 -->
           <breadcrumb v-if="$route.name != '首页'" />
-          <transition 
-            name="el-fade-in-linear" 
+          <transition
+            name="el-fade-in-linear"
             mode="out-in"
           >
             <router-view class="main_box" />
@@ -53,23 +53,23 @@ export default {
   components: {
     navi,
     breadcrumb,
-    rightTop
+    rightTop,
   },
   data() {
     return {
       isCollapse: false,
-      menuClass: ""
+      menuClass: "",
     };
   },
   watch: {
     $route() {
       this.saveRoute();
-    }
+    },
   },
-  mounted() {
+  async mounted() {
     var _this = this;
     _this.windowSize();
-    window.onresize = function() {
+    window.onresize = function () {
       _this.windowSize();
     };
     var Administrators = sessionStorage.Administrators;
@@ -81,7 +81,9 @@ export default {
     } else {
       this.menuClass = "1";
     }
-    this.linkWS();
+    await this.getFriends();
+    await this.linkWS();
+    this.watchWs();
   },
   methods: {
     windowSize() {
@@ -95,33 +97,71 @@ export default {
       sessionStorage.routeUrl = name;
       sessionStorage.menuClass = this.menuClass;
     },
-    linkWS(){
-      ws.onopen = (() => {
+    async linkWS() {
+      await ws.connect();
+      ws.on("wsOpen", () => {
         this.$message.success("消息服务器连接成功");
       });
-
-      ws.onclose = (() => {
-        this.$message({
-          type: "error",
-          duration: 2000,
-          showClose: false,
-          message: "消息服务器连接断开，2秒后自动重连"
-        })
-        
-        setTimeout(() => {
-        }, 2000);
-      });
-
-      ws.onmessage = (msg => {
-        msg = JSON.parse(msg.data)
-        if(msg.error !== 1008){
-          console.log(msg)
-        } else {
-          this.$message.error("登陆过期，请重新登陆")
+      ws.on("wsClose", () => {
+        if (this.$route.meta.mustLogin) {
+          this.$message({
+            type: "error",
+            duration: 2000,
+            showClose: false,
+            message: "消息服务器连接断开，2秒后自动重连",
+          });
+          setTimeout(async () => {
+            await ws.connect();
+          }, 2000);
         }
       });
-    }
-  }
+    },
+    async getFriends() {
+      axios
+        .get("user/getFriendsList")
+        .then((res) => {
+          if (res.error == 0) {
+            this.$store.commit("friendsList", res.data);
+          } else {
+            this.$message.error(res.message);
+          }
+        })
+        .catch((err) => {
+          console.log(err);
+          this.$message.error("获取好友错误，请刷新重试");
+        });
+    },
+    watchWs() {
+      const _this = this;
+      ws.on("friendOnlineState", data => {
+        let friend = this.$store.state.friendsList.find(i => i._id == data.friendId);
+        if(data.state == 1){
+          this.$notify.success({
+            title: `您的好友 ${friend.nickname} 上线啦`,
+            offset: 50
+          });
+        }
+        this.$store.commit("friendOnlineState", {
+          id: data.friendId,
+          state: data.state,
+        })
+      });
+      ws.on("sendMessage", data => {
+        let friend = this.$store.state.friendsList.find(i => i._id == data.data.sendId);
+        if(this.$store.state.currentChatId != data.data.sendId){
+          this.$notify({
+            title: friend.nickname,
+            message: data.data.text,
+            iconClass: "el-icon-chat-dot-round",
+            offset: 50,
+            onClick(){
+              _this.$router.push({name: "我的好友", params: { friendId:  friend._id}});
+            }
+          });
+        }
+      })
+    },
+  },
 };
 </script>
 <style scoped>

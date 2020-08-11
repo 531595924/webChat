@@ -9,7 +9,8 @@ export default new Vuex.Store({
   state: {
     token: "",
     userInfo: {},
-    menudata: ""
+    menudata: "",
+    friendsList: []
   },
   mutations: {
     //全局方法
@@ -21,7 +22,7 @@ export default new Vuex.Store({
       state.userInfo = userInfo;
       sessionStorage.userInfo = JSON.stringify(userInfo);
     },
-    setUserPortrait(state, portraitUrl){
+    setUserPortrait(state, portraitUrl) {
       state.userInfo.userPortrait = portraitUrl;
       sessionStorage.userInfo = JSON.stringify(state.userInfo);
     },
@@ -36,6 +37,16 @@ export default new Vuex.Store({
       state.userInfo = "";
       sessionStorage.removeItem("token");
       sessionStorage.removeItem("userInfo");
+    },
+    friendsList(state, list) {
+      state.friendsList = list;
+    },
+    friendOnlineState(state, data) {
+      state.friendsList.forEach(i => {
+        if (i._id == data.id) {
+          i.online = data.state
+        }
+      })
     }
   },
   actions: {}

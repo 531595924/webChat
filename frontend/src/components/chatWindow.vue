@@ -2,19 +2,30 @@
  * @Author: coldlike 531595924@qq.com 
  * @Date: 2020-07-14 17:38:12 
  * @Last Modified by: coldlike 531595924@qq.com
- * @Last Modified time: 2020-07-14 18:01:04
+ * @Last Modified time: 2020-08-10 11:42:27
  */
 <!-- 模块 -->
 <template>
   <!-- 模块根目录 -->
   <div class="chatWindow">
     <div class="window-title">
-      说谎的流星2013
+      {{ activityData.nickname }}
     </div>
-    <div class="window-record">
+    <div
+      ref="window-record"
+      class="window-record"
+    >
+      <el-button
+        :disabled="moreListState"
+        class="moreList"
+        type="text"
+        @click="getUserChatRecord(listSkip + 20)"
+      >
+        {{ moreListText }}
+      </el-button>
       <div
         v-for="(i, index) in chatRecordList"
-        :key="i.time"
+        :key="new Date(i.time).getTime()"
         class="record-item"
       >
         <p
@@ -24,14 +35,14 @@
           {{ getTime(i.time) }}
         </p>
         <div
-          v-if="i.sender.userId == $store.state.userInfo._id"
+          v-if="i.sendId == $store.state.userInfo._id"
           class="record-main record-own"
         >
           <div class="record-text">
             {{ i.text }}
           </div>
           <div class="record-portrait">
-            <img :src="i.sender.portraitUrl">
+            <img :src="$store.state.userInfo.userPortrait">
           </div>
         </div>
         <div
@@ -39,7 +50,7 @@
           class="record-main"
         >
           <div class="record-portrait">
-            <img :src="i.sender.portraitUrl">
+            <img :src="activityData.userPortrait">
           </div>
           <div class="record-text">
             {{ i.text }}
@@ -52,7 +63,7 @@
         v-model="textarea"
         class="window-send-inputBox"
         type="textarea"
-        maxlength="500"
+        maxlength="1000"
         show-word-limit
         resize="none"
         rows="4"
@@ -63,6 +74,7 @@
           size="medium"
           circle
           icon="iconfont icon-Release"
+          @click="sendMessage"
         />
       </div>
     </div>
@@ -71,58 +83,21 @@
 <!-- 模块脚本 -->
 <script>
 //载入插件
+import ws from "../plugins/ws";
 export default {
   name: "ChatWindow", // 模块name
   props: {
-    activityId: String
+    activityData: Object,
   },
 
   data() {
     // 模块数据，必须使用 return
     return {
       textarea: "",
-      chatRecordList: [
-        {
-          sender: {
-            nickname: "士大夫",
-            userId: "5f0591c594dc751c0434f92c",
-            portraitUrl:
-              "http://localhost:5000/userUpData/userPortrait/5f0591c594dc751c04d2f92c-1594604640257.jpg"
-          },
-          time: 1594684730505,
-          text: "你好"
-        },
-        {
-          sender: {
-            nickname: "士大夫",
-            userId: "5f0591c594dc751c0434f92c",
-            portraitUrl:
-              "http://localhost:5000/userUpData/userPortrait/5f0591c594dc751c04d2f92c-1594604640257.jpg"
-          },
-          time: 1594685730505,
-          text: "你好"
-        },
-        {
-          sender: {
-            nickname: "说谎的流星2013",
-            userId: "5f0591c594dc751c04d2f92c",
-            portraitUrl:
-              "http://localhost:5000/userUpData/userPortrait/5f0591c594dc751c04d2f92c-1594604640257.jpg"
-          },
-          time: 1594686730505,
-          text: "你好"
-        },
-        {
-          sender: {
-            nickname: "士大夫",
-            userId: "5f0591c594dc751c0434f92c",
-            portraitUrl:
-              "http://localhost:5000/userUpData/userPortrait/5f0591c594dc751c04d2f92c-1594604640257.jpg"
-          },
-          time: 1594687730605,
-          text: "你好"
-        }
-      ]
+      chatRecordList: [],
+      listSkip: 0,
+      moreListState: false,
+      moreListText: "查看更多历史记录"
     };
   },
 
@@ -134,10 +109,22 @@ export default {
 
   //生命周期开始
   //页面初始化完成后执行
-  // mounted: (){},
+  mounted() {
+    this.getUserChatRecord();
+    ws.on("sendMessage", data => {
+      this.chatRecordList.push(data.data);
+      this.scrollBottom();
+    })
+  },
 
   //方法属性
   methods: {
+    scrollBottom() {
+      let el = this.$refs["window-record"];
+      setTimeout(() => {
+        this.$scrollTo(el, el.scrollHeight);
+      }, 200);
+    },
     getTime(time) {
       time = new Date(time);
       let Y = time.getYear() + 1900;
@@ -151,18 +138,79 @@ export default {
       s = s < 10 ? `0` + s : s;
       return `${Y}-${M}-${D} ${h}:${m}:${s}`;
     },
-    timeDisplay(time, index){
-      if(index > 0){
-        if(time - this.chatRecordList[index - 1].time > 180){
-          return true
+    getStamp(time) {
+      let date = new Date(time);
+      return date.getTime();
+    },
+    timeDisplay(time, index) {
+      if (index > 0) {
+        if (
+          this.getStamp(time) -
+            this.getStamp(this.chatRecordList[index - 1].time) >
+          180000
+        ) {
+          return true;
         } else {
-          return false
+          return false;
         }
       } else {
-        return true
+        return true;
       }
-    }
-  }
+    },
+    sendMessage() {
+      if (this.textarea && this.textarea != "") {
+        let formData = new FormData();
+        let time = new Date();
+        formData.append("toId", this.activityData._id);
+        formData.append("text", this.textarea);
+        formData.append("time", time.getTime());
+        axios
+          .post("user/sendMessage", formData)
+          .then((res) => {
+            if (res.error == 0) {
+              this.chatRecordList.push({
+                sendId: this.$store.state.userInfo._id,
+                time: time,
+                text: this.textarea,
+              });
+              this.textarea = "";
+              this.scrollBottom();
+            } else {
+              this.$message.error("消息发送失败");
+            }
+          })
+          .catch((err) => {
+            console.log(err);
+            this.$message.error("发送失败");
+          });
+      } else {
+        this.$message.error("请输入要发送的消息");
+      }
+    },
+    getUserChatRecord(skip = 0) {
+      axios
+        .get(`user/getUserChatRecord?friendId=${this.activityData._id}&skip=${skip}`)
+        .then((res) => {
+          if (res.error == 0) {
+            this.chatRecordList.unshift(...res.data);
+            this.listSkip = Number(res.skip);
+            if(this.listSkip == 0){
+              this.scrollBottom();
+            }
+            if(res.data.length < 20){
+              this.moreListState = true;
+              this.moreListText = "没有更多历史记录";
+            }
+          } else {
+            this.$message.error("获取聊天记录失败，请重试");
+          }
+        })
+        .catch((err) => {
+          console.log(err);
+          this.$message.error("获取聊天记录失败，请重试");
+        });
+    },
+  },
 };
 </script>
 <style scoped>
@@ -183,7 +231,7 @@ export default {
 
 .window-record {
   overflow-y: auto;
-  padding: 5px;
+  padding: 10px;
   margin: 5px 0;
   flex: 1;
 }
@@ -241,7 +289,7 @@ export default {
 }
 
 .record-own > .record-text {
-  background-color: rgba(38,131,245,1);
+  background-color: rgba(38, 131, 245, 1);
   color: white;
   margin-right: 8px;
   margin-left: 0;
@@ -254,6 +302,11 @@ export default {
 .el-button >>> .icon-Release {
   width: 18px;
   margin-right: 0;
+}
+
+.moreList {
+  margin: 0 auto 20px auto;
+  display: block;
 }
 </style>
 <style>

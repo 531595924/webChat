@@ -129,6 +129,57 @@ define({ "api": [
   },
   {
     "type": "get",
+    "url": "/user/getFriendsList",
+    "title": "获取好友列表",
+    "name": "getFriendsList",
+    "group": "User",
+    "header": {
+      "fields": {
+        "Header": [
+          {
+            "group": "Header",
+            "type": "string",
+            "optional": false,
+            "field": "Authorization",
+            "description": "<p>登陆后返回的token</p>"
+          }
+        ]
+      }
+    },
+    "permission": [
+      {
+        "name": "普通用户"
+      }
+    ],
+    "success": {
+      "examples": [
+        {
+          "title": "成功返回",
+          "content": "{\n   error: 0\n}",
+          "type": "json"
+        }
+      ]
+    },
+    "error": {
+      "examples": [
+        {
+          "title": "错误返回",
+          "content": "{\n   error: 1,\n   message: \"获取错误\"\n}",
+          "type": "json"
+        }
+      ]
+    },
+    "version": "0.0.0",
+    "filename": "backend/model/user.js",
+    "groupTitle": "User",
+    "sampleRequest": [
+      {
+        "url": "http://127.0.0.1:5000/user/getFriendsList"
+      }
+    ]
+  },
+  {
+    "type": "get",
     "url": "/user/getMenu",
     "title": "获取菜单",
     "name": "getMenu",
@@ -166,6 +217,134 @@ define({ "api": [
     "sampleRequest": [
       {
         "url": "http://127.0.0.1:5000/user/getMenu"
+      }
+    ]
+  },
+  {
+    "type": "get",
+    "url": "/user/getNews",
+    "title": "获取news消息",
+    "name": "getNews",
+    "group": "User",
+    "header": {
+      "fields": {
+        "Header": [
+          {
+            "group": "Header",
+            "type": "string",
+            "optional": false,
+            "field": "Authorization",
+            "description": "<p>登陆后返回的token</p>"
+          }
+        ]
+      }
+    },
+    "permission": [
+      {
+        "name": "普通用户"
+      }
+    ],
+    "parameter": {
+      "fields": {
+        "Parameter": [
+          {
+            "group": "Parameter",
+            "type": "string",
+            "optional": true,
+            "field": "type",
+            "description": "<p>0全部消息 1未读消息（默认） 2已读消息</p>"
+          }
+        ]
+      }
+    },
+    "success": {
+      "examples": [
+        {
+          "title": "成功返回",
+          "content": "{\n   error: 0,\n   data: {\n       \"_id\": \"\", // 消息id\n       \"type\": \"addFriend\", // 消息类型\n       \"message\": \"123456789请求添加你为好友\", // 消息文档\n       \"data\": { // 消息数据\n           \"sendUserId\": \"5f0eca020717ae2540af29e8\",\n           \"receiverId\": \"5f0fced6394edf0c2c520cf3\"\n       },\n       \"sendTime\": \"2020-07-17T03:31:00.805Z\", // 发送时间\n       \"readTime\": null, // 读取时间\n       \"readStatus\": false // 是否已读\n   }\n}",
+          "type": "json"
+        }
+      ]
+    },
+    "error": {
+      "examples": [
+        {
+          "title": "错误返回",
+          "content": "{\n   error: 1,\n   message: \"查询news信息错误\"\n}",
+          "type": "json"
+        }
+      ]
+    },
+    "version": "0.0.0",
+    "filename": "backend/model/user.js",
+    "groupTitle": "User",
+    "sampleRequest": [
+      {
+        "url": "http://127.0.0.1:5000/user/getNews"
+      }
+    ]
+  },
+  {
+    "type": "get",
+    "url": "/user/getUserChatRecord",
+    "title": "获取与好友的聊天记录",
+    "name": "getUserChatRecord",
+    "group": "User",
+    "header": {
+      "fields": {
+        "Header": [
+          {
+            "group": "Header",
+            "type": "string",
+            "optional": false,
+            "field": "Authorization",
+            "description": "<p>登陆后返回的token</p>"
+          }
+        ]
+      }
+    },
+    "permission": [
+      {
+        "name": "普通用户"
+      }
+    ],
+    "parameter": {
+      "fields": {
+        "Parameter": [
+          {
+            "group": "Parameter",
+            "type": "string",
+            "optional": false,
+            "field": "friendId",
+            "description": "<p>好友id</p>"
+          }
+        ]
+      }
+    },
+    "success": {
+      "examples": [
+        {
+          "title": "成功返回",
+          "content": "{\n   error: 0\n   data: [{\n        sendId: \"\", // 发送者id\n        text: \"\", // 信息\n        time: \"\" // 发送时间\n     }] \n}",
+          "type": "json"
+        }
+      ]
+    },
+    "error": {
+      "examples": [
+        {
+          "title": "错误返回",
+          "content": "{\n   error: 1,\n   message: \"获取错误\"\n}",
+          "type": "json"
+        }
+      ]
+    },
+    "version": "0.0.0",
+    "filename": "backend/model/user.js",
+    "groupTitle": "User",
+    "sampleRequest": [
+      {
+        "url": "http://127.0.0.1:5000/user/getUserChatRecord"
       }
     ]
   },
@@ -219,6 +398,141 @@ define({ "api": [
     "sampleRequest": [
       {
         "url": "http://127.0.0.1:5000/user/login"
+      }
+    ]
+  },
+  {
+    "type": "post",
+    "url": "/user/passAddFriend",
+    "title": "通过添加好友请求",
+    "name": "passAddFriend",
+    "group": "User",
+    "header": {
+      "fields": {
+        "Header": [
+          {
+            "group": "Header",
+            "type": "string",
+            "optional": false,
+            "field": "Authorization",
+            "description": "<p>登陆后返回的token</p>"
+          }
+        ]
+      }
+    },
+    "permission": [
+      {
+        "name": "普通用户"
+      }
+    ],
+    "parameter": {
+      "fields": {
+        "Parameter": [
+          {
+            "group": "Parameter",
+            "type": "string",
+            "optional": false,
+            "field": "friendId",
+            "description": "<p>好友id</p>"
+          },
+          {
+            "group": "Parameter",
+            "type": "number",
+            "optional": false,
+            "field": "pass",
+            "description": "<p>是否通过 0不通过 1通过</p>"
+          }
+        ]
+      }
+    },
+    "success": {
+      "examples": [
+        {
+          "title": "成功返回",
+          "content": "{\n   error: 0\n}",
+          "type": "json"
+        }
+      ]
+    },
+    "error": {
+      "examples": [
+        {
+          "title": "错误返回",
+          "content": "{\n   error: 1,\n   message: \"已添加此好友\"\n}",
+          "type": "json"
+        }
+      ]
+    },
+    "version": "0.0.0",
+    "filename": "backend/model/user.js",
+    "groupTitle": "User",
+    "sampleRequest": [
+      {
+        "url": "http://127.0.0.1:5000/user/passAddFriend"
+      }
+    ]
+  },
+  {
+    "type": "post",
+    "url": "/user/readNews",
+    "title": "已读消息",
+    "name": "readNews",
+    "group": "User",
+    "header": {
+      "fields": {
+        "Header": [
+          {
+            "group": "Header",
+            "type": "string",
+            "optional": false,
+            "field": "Authorization",
+            "description": "<p>登陆后返回的token</p>"
+          }
+        ]
+      }
+    },
+    "permission": [
+      {
+        "name": "普通用户"
+      }
+    ],
+    "parameter": {
+      "fields": {
+        "Parameter": [
+          {
+            "group": "Parameter",
+            "type": "string",
+            "optional": false,
+            "field": "newsId",
+            "description": "<p>消息 ID</p>"
+          }
+        ]
+      }
+    },
+    "success": {
+      "examples": [
+        {
+          "title": "成功返回",
+          "content": "{\n   error: 0\n}",
+          "type": "json"
+        }
+      ]
+    },
+    "error": {
+      "examples": [
+        {
+          "title": "错误返回",
+          "content": "{\n   error: 1,\n   message: \"已读消息错误\"\n}",
+          "type": "json"
+        }
+      ]
+    },
+    "version": "0.0.0",
+    "filename": "backend/model/user.js",
+    "groupTitle": "User",
+    "sampleRequest": [
+      {
+        "url": "http://127.0.0.1:5000/user/readNews"
       }
     ]
   },
@@ -344,6 +658,84 @@ define({ "api": [
     "sampleRequest": [
       {
         "url": "http://127.0.0.1:5000/user/searchUsers"
+      }
+    ]
+  },
+  {
+    "type": "post",
+    "url": "/user/sendMessage",
+    "title": "发送消息（好友）",
+    "name": "sendMessage",
+    "group": "User",
+    "header": {
+      "fields": {
+        "Header": [
+          {
+            "group": "Header",
+            "type": "string",
+            "optional": false,
+            "field": "Authorization",
+            "description": "<p>登陆后返回的token</p>"
+          }
+        ]
+      }
+    },
+    "permission": [
+      {
+        "name": "普通用户"
+      }
+    ],
+    "parameter": {
+      "fields": {
+        "Parameter": [
+          {
+            "group": "Parameter",
+            "type": "string",
+            "optional": false,
+            "field": "toId",
+            "description": "<p>接收者ID</p>"
+          },
+          {
+            "group": "Parameter",
+            "type": "string",
+            "optional": false,
+            "field": "text",
+            "description": "<p>消息（最多1000字符）</p>"
+          },
+          {
+            "group": "Parameter",
+            "type": "date",
+            "optional": false,
+            "field": "time",
+            "description": "<p>发送时间 js 时间戳</p>"
+          }
+        ]
+      }
+    },
+    "success": {
+      "examples": [
+        {
+          "title": "成功返回",
+          "content": "{\n   error: 0\n}",
+          "type": "json"
+        }
+      ]
+    },
+    "error": {
+      "examples": [
+        {
+          "title": "错误返回",
+          "content": "{\n   error: 1,\n   message: \"获取错误\"\n}",
+          "type": "json"
+        }
+      ]
+    },
+    "version": "0.0.0",
+    "filename": "backend/model/user.js",
+    "groupTitle": "User",
+    "sampleRequest": [
+      {
+        "url": "http://127.0.0.1:5000/user/sendMessage"
       }
     ]
   },

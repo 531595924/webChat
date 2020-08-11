@@ -2,7 +2,7 @@
  * @Author: coldlike 531595924@qq.com 
  * @Date: 2020-07-14 09:12:06 
  * @Last Modified by: coldlike 531595924@qq.com
- * @Last Modified time: 2020-07-14 17:40:02
+ * @Last Modified time: 2020-08-10 17:08:40
  */
 
 <!-- 模块 -->
@@ -12,27 +12,38 @@
     <template v-if="listData.length != 0">
       <div
         v-for="i in listData"
-        :key="i.itemId"
+        :key="i._id"
         class="list-item"
-        :class="i.itemId == activityId ? 'item-activity' : ''"
-        @click="$emit('clickitem', i.itemId)"
+        :class="i._id == activityId ? 'item-activity' : ''"
+        @click="$emit('clickitem', i._id)"
       >
-        <div class="item-portrait">
-          <img :src="i.portraitUrl">
+        <div
+          class="item-portrait"
+          :class="i.online == 1 ? '' : 'offline'"
+        >
+          <img :src="i.userPortrait">
         </div>
         <div class="item-right">
           <div class="item-right-top">
             <p class="item-title">
-              {{ i.title }}
+              {{ i.nickname }}
             </p>
             <p class="item-date">
-              {{ getTime(i.lastRecordTime) }}
+              {{ i.lastRecordTime? getTime(i.lastRecordTime) : '' }}
             </p>
           </div>
-          <p class="item-text">
+          <p
+            v-if="i.lastRecord"
+            class="item-text"
+          >
             {{ i.lastRecord }}
           </p>
         </div>
+        <el-badge
+          :value="i.unreadNum"
+          :max="99"
+          class="item"
+        />
       </div>
     </template>
     <div
@@ -60,40 +71,6 @@ export default {
   data() {
     // 模块数据，必须使用 return
     return {
-      // listData: [
-      //   {
-      //     itemId: "4564",
-      //     title: "说谎的流星",
-      //     portraitUrl:
-      //       "http://localhost:5000/userUpData/userPortrait/5f0591c594dc751c04d2f92c-1594604640257.jpg",
-      //     lastRecordTime: 1594688730505,
-      //     lastRecord: "werwe"
-      //   },
-      //   {
-      //     itemId: "5f0591c594dc751c04d2f92c",
-      //     title: "说谎的流星",
-      //     portraitUrl:
-      //       "http://localhost:5000/userUpData/userPortrait/5f0591c594dc751c04d2f92c-1594604640257.jpg",
-      //     lastRecordTime: 1594686730505,
-      //     lastRecord: "23423"
-      //   },
-      //   {
-      //     itemId: "45464",
-      //     title: "说谎的流星",
-      //     portraitUrl:
-      //       "http://localhost:5000/userUpData/userPortrait/5f0591c594dc751c04d2f92c-1594604640257.jpg",
-      //     lastRecordTime: 1595688730505,
-      //     lastRecord: "asdfa"
-      //   },
-      //   {
-      //     itemId: "4587864",
-      //     title: "说谎的流星",
-      //     portraitUrl:
-      //       "http://localhost:5000/userUpData/userPortrait/5f0591c594dc751c04d2f92c-1594604640257.jpg",
-      //     lastRecordTime: 1524688730505,
-      //     lastRecord: "werwe"
-      //   }
-      // ]
     };
   },
 
@@ -139,7 +116,7 @@ export default {
   align-items: center;
   cursor: pointer;
   height: 70px;
-  padding: 0 5px;
+  padding: 0 15px;
   border-bottom: 1px #fff solid;
 }
 
@@ -174,7 +151,6 @@ export default {
   display: flex;
   justify-content: space-between;
   align-items: center;
-  margin-bottom: 8px;
 }
 
 .item-title {
@@ -192,6 +168,7 @@ export default {
 }
 
 .item-text {
+  margin-top: 8px;
   max-width: 280px;
   font-size: 12px;
   color: #a6a6a6;
@@ -209,6 +186,10 @@ export default {
   font-size: 16px;
   color: #aaa;
   margin-top: 30px;
+}
+
+.offline {
+  filter: grayscale(100%);
 }
 </style>
 <style>
